@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spring:beans xmlns:spring="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:drools="http://drools.org/schema/drools-spring"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+        http://drools.org/schema/drools-spring http://drools.org/schema/drools-spring-1.2.0.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+	
+    <spring:bean id="knowledgeProvider" class="com.plugtree.cisco.spring.JPAKnowledgeServiceBean">
+        <spring:property name="entityManagerFactory" ref="entityManagerFactory" />
+        <spring:property name="transactionManager" ref="transactionManager" />
+        <spring:property name="processEventListeners">
+            <spring:list value-type="org.drools.event.process.ProcessEventListener">
+                <spring:bean class="com.plugtree.cisco.listeners.LogProcessEventListener"/>
+                
+            </spring:list>
+        </spring:property>
+        <spring:property name="agendaEventListeners">
+            <spring:list value-type="org.drools.event.rule.AgendaEventListener">
+                <spring:bean class="com.plugtree.cisco.listeners.LogAgendaEventListener"/>
+            </spring:list>
+        </spring:property>
+        <spring:property name="workingMemoryEventListeners">
+            <spring:list value-type="org.drools.event.rule.WorkingMemoryEventListener">
+                <spring:bean class="com.plugtree.cisco.listeners.LogWMEventListener"/>
+            </spring:list>
+        </spring:property>
+        <spring:property name="knowledgeStore" ref="knowledgeStore"/>
+        <spring:property name="kbase">
+            <drools:kbase id="knowledgeBase" node="node1">
+              <drools:resources>
+                  <drools:resource type="BPMN2" source="classpath:./processes/demo.human-task-process.bpmn2" />
+                  <drools:resource type="BPMN2" source="classpath:./processes/demo.my-user-defined-tasks-process-v1.bpmn2" />
+                  <drools:resource type="BPMN2" source="classpath:./processes/demo.my-user-defined-tasks-process-v2.bpmn2" />
+                  <drools:resource type="BPMN2" source="classpath:./processes/demo.new-main-process.bpmn2" />
+                  <drools:resource type="BPMN2" source="classpath:./processes/demo.new-sub-process.bpmn2" />
+                  <drools:resource type="BPMN2" source="classpath:./processes/demo.rule-process.bpmn2" />
+                  <drools:resource type="DRL" source="classpath:./rules/my-rules.drl" />
+              </drools:resources>
+            </drools:kbase>
+        </spring:property>
+        <spring:property name="workItemHandlers">
+            <spring:map key-type="java.lang.String" value-type="org.drools.runtime.process.WorkItemHandler">
+               <spring:entry key="Human Task" value-ref="asyncWorkItemHandler"/>
+               <spring:entry key="hello" value-ref="asyncWorkItemHandler"/>
+               <spring:entry key="goodbye" value-ref="asyncWorkItemHandler"/>
+               <spring:entry key="goodbyeV2" value-ref="asyncWorkItemHandler"/>
+               <spring:entry key="register" value-ref="asyncWorkItemHandler"/>
+            </spring:map>
+        </spring:property>
+    </spring:bean>
+
+    <spring:bean id="asyncWorkItemHandler" class="com.plugtree.cisco.test.TestAsyncWorkItemHandler" factory-method="getInstance" />
+
+    <drools:grid-node id="node1" />
+
+    <spring:bean id="knowledgeStore" class="org.drools.persistence.jpa.KnowledgeStoreServiceImpl"/>
+
+    <spring:bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <spring:property name="entityManagerFactory" ref="entityManagerFactory" />
+    </spring:bean>
+    <spring:bean id="datasource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <spring:property name="driverClassName" value="org.h2.Driver" />
+        <spring:property name="url" value="jdbc:h2:workflow" />
+        <spring:property name="username" value="sa" />
+        <spring:property name="password" value="" />
+    </spring:bean>
+
+    <spring:bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <spring:property name="persistenceUnitName" value="org.jbpm.persistence.jpa" />
+        <spring:property name="dataSource" ref="datasource" />
+        <spring:property name="jpaProperties">
+            <spring:props>
+                 <spring:prop key="hibernate.connection.autocommit">false</spring:prop>
+                 <spring:prop key="hibernate.max_fetch_depth">3</spring:prop>
+                 <spring:prop key="hibernate.show_sql">false</spring:prop>
+                 <spring:prop key="hibernate.dialect">org.hibernate.dialect.H2Dialect</spring:prop>
+                 <spring:prop key="hibernate.hbm2ddl.auto">create-drop</spring:prop>
+            </spring:props>
+        </spring:property>
+    </spring:bean>
+    
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="kProvider" expression="execution(* com.plugtree.cisco.spring.JPAKnowledgeServiceBean.*(..))"/>
+        <aop:advisor advice-ref="kProviderTxAdvice" pointcut-ref="kProvider"/>
+    </aop:config>
+
+    <tx:advice id="kProviderTxAdvice">
+        <tx:attributes>
+            <tx:method name="newSession" propagation="REQUIRED"/>
+            <tx:method name="loadSession" propagation="REQUIRED"/>
+            <tx:method name="*" propagation="SUPPORTS" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+
+    <!-- Task service configuration -->
+    
+    <spring:bean id="taskService" class="org.jbpm.task.service.local.LocalTaskService" depends-on="userGroupCallbackManager">
+        <spring:constructor-arg ref="internalTaskService"/>
+    </spring:bean>
+    
+    <spring:bean id="internalTaskService" class="org.jbpm.task.service.TaskService">
+        <spring:constructor-arg ref="taskEntityManagerFactory"/>
+        <spring:constructor-arg ref="systemEventListener"/>
+        <spring:property name="userinfo" ref="userInfo"/>
+        <spring:property name="escalatedDeadlineHandler" ref="deadlineHandler"/>
+    </spring:bean>
+    
+    <spring:bean id="taskEntityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <spring:property name="persistenceUnitName" value="org.jbpm.task" />
+        <spring:property name="dataSource" ref="datasource" />
+        <spring:property name="jpaProperties">
+            <spring:props>
+                 <spring:prop key="hibernate.connection.autocommit">false</spring:prop>
+                 <spring:prop key="hibernate.max_fetch_depth">3</spring:prop>
+                 <spring:prop key="hibernate.show_sql">false</spring:prop>
+                 <spring:prop key="hibernate.dialect">org.hibernate.dialect.H2Dialect</spring:prop>
+                 <spring:prop key="hibernate.hbm2ddl.auto">create-drop</spring:prop>
+            </spring:props>
+        </spring:property>
+    </spring:bean>
+    
+    <spring:bean id="systemEventListener" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <spring:property name="staticMethod" value="org.drools.SystemEventListenerFactory.getSystemEventListener"/>
+    </spring:bean>
+    
+    <spring:bean id="userGroupCallbackManager" class="org.jbpm.task.service.UserGroupCallbackManager" factory-method="getInstance">
+        <spring:property name="callback">
+            <spring:bean class="com.plugtree.cisco.test.TestUserGroupCallback"/>
+        </spring:property>
+    </spring:bean>
+    
+    <spring:bean id="deadlineHandler" class="com.plugtree.cisco.test.TestEscalatedDeadlineHandler">
+        <spring:property name="userInfo" ref="userInfo"/>
+    </spring:bean>
+    
+    <spring:bean id="userInfo" class="com.plugtree.cisco.test.TestUserInfo"/>
+</spring:beans>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<spring:beans xmlns:spring="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:context="http://www.springframework.org/schema/context"
+    xmlns:tx="http://www.springframework.org/schema/tx"
+    xmlns:aop="http://www.springframework.org/schema/aop"
+    xmlns:drools="http://drools.org/schema/drools-spring"
+    xmlns:util="http://www.springframework.org/schema/util"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+        http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+        http://drools.org/schema/drools-spring http://drools.org/schema/drools-spring-1.2.0.xsd
+        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+	
+    <spring:bean id="abstractKnowledgeProvider" class="org.drools.container.spring.beans.persistence.JPAKnowledgeServiceBean" abstract="true">
+        <spring:property name="entityManagerFactory" ref="entityManagerFactory" />
+        <spring:property name="transactionManager" ref="transactionManager" />
+        <spring:property name="objectMarshallingStrategies">
+          <spring:props>
+            <spring:prop key="java.io.Serializable">serializable</spring:prop>
+          </spring:props>
+        </spring:property>
+        <spring:property name="processEventListeners">
+            <spring:list value-type="org.drools.event.process.ProcessEventListener">
+                <spring:bean class="org.drools.persistence.variablepersistence.StringPersisterProcessEventListener"/>
+            </spring:list>
+        </spring:property>
+        <spring:property name="knowledgeStore" ref="knowledgeStore"/>
+        
+    </spring:bean>
+
+    <!-- property name="variablePersisters">
+        <util:map>
+            <entry key="javax.persistence.Entity" value="org.drools.persistence.processinstance.persisters.JPAVariablePersister" />
+            <entry key="java.lang.String" value="org.drools.persistence.variablepersistence.StringVariablePersister" />
+            <entry key="java.io.Serializable" value="org.drools.persistence.processinstance.persisters.SerializableVariablePersister" />
+        </util:map>
+    </property -->
+    	
+    <drools:grid-node id="node1" />
+
+    <drools:kstore id="knowledgeStore"/>
+
+    <context:property-placeholder location="classpath:META-INF/props/env.properties"/>
+
+    <spring:bean id="transactionManager" class="org.springframework.orm.jpa.JpaTransactionManager">
+        <spring:property name="entityManagerFactory" ref="entityManagerFactory" />
+    </spring:bean>
+    <spring:bean id="datasource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <spring:property name="driverClassName" value="${jdbc.driverClassName}" />
+        <spring:property name="url" value="${jdbc.url}" />
+        <spring:property name="username" value="${jdbc.username}" />
+        <spring:property name="password" value="${jdbc.password}" />
+    </spring:bean>
+
+    <spring:bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
+        <spring:property name="persistenceUnitName" value="org.drools.persistence.jpa" />
+        <spring:property name="dataSource" ref="datasource" />
+        <spring:property name="jpaProperties">
+            <spring:props>
+                 <spring:prop key="hibernate.connection.autocommit">${hibernate.connection.autocommit}</spring:prop>
+                 <spring:prop key="hibernate.max_fetch_depth">${hibernate.max_fetch_depth}</spring:prop>
+                 <spring:prop key="hibernate.show_sql">${hibernate.show_sql}</spring:prop>
+                 <spring:prop key="hibernate.dialect">${hibernate.dialect}</spring:prop>
+                 <spring:prop key="hibernate.hbm2ddl.auto">${hibernate.hbm2ddl.auto}</spring:prop>
+            </spring:props>
+        </spring:property>
+    </spring:bean>
+
+    <aop:config proxy-target-class="true">
+        <aop:pointcut id="kProvider" expression="execution(* org.drools.container.spring.beans.persistence.JPAKnowledgeServiceBean.*(..))"/>
+        <aop:advisor advice-ref="kProviderTxAdvice" pointcut-ref="kProvider"/>
+    </aop:config>
+
+    <tx:advice id="kProviderTxAdvice">
+        <tx:attributes>
+            <tx:method name="newStatefulKnowledgeSession" propagation="REQUIRED"/>
+            <tx:method name="loadStatefulKnowledgeSession" propagation="REQUIRED"/>
+            <tx:method name="*" propagation="SUPPORTS" read-only="true"/>
+        </tx:attributes>
+    </tx:advice>
+    
+</spring:beans>
