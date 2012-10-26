@@ -68,7 +68,7 @@
     </spring:bean>
     <spring:bean id="datasource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <spring:property name="driverClassName" value="org.h2.Driver" />
-        <spring:property name="url" value="jdbc:h2:workflow" />
+        <spring:property name="url" value="jdbc:h2:workflow;MVCC=TRUE" />
         <spring:property name="username" value="sa" />
         <spring:property name="password" value="" />
     </spring:bean>

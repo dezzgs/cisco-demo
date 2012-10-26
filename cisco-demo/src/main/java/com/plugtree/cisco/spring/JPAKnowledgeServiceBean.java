@@ -9,22 +9,34 @@ import javax.persistence.EntityManagerFactory;
 import org.drools.KnowledgeBase;
 import org.drools.KnowledgeBaseFactory;
 import org.drools.base.MapGlobalResolver;
+import org.drools.compiler.ProcessBuilderFactory;
 import org.drools.event.process.ProcessEventListener;
 import org.drools.event.rule.AgendaEventListener;
 import org.drools.event.rule.WorkingMemoryEventListener;
+import org.drools.marshalling.impl.ProcessMarshallerFactory;
 import org.drools.persistence.jpa.KnowledgeStoreService;
 import org.drools.runtime.Environment;
 import org.drools.runtime.EnvironmentName;
 import org.drools.runtime.KnowledgeSessionConfiguration;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.process.ProcessRuntimeFactory;
 import org.drools.runtime.process.WorkItemHandler;
+import org.jbpm.marshalling.impl.ProcessMarshallerFactoryServiceImpl;
 import org.jbpm.process.audit.JPAWorkingMemoryDbLogger;
+import org.jbpm.process.builder.ProcessBuilderFactoryServiceImpl;
+import org.jbpm.process.instance.ProcessRuntimeFactoryServiceImpl;
 import org.springframework.beans.InvalidPropertyException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.transaction.support.AbstractPlatformTransactionManager;
 
 public class JPAKnowledgeServiceBean implements InitializingBean {
 
+	static {
+		 ProcessBuilderFactory.setProcessBuilderFactoryService(new ProcessBuilderFactoryServiceImpl());
+         ProcessMarshallerFactory.setProcessMarshallerFactoryService(new ProcessMarshallerFactoryServiceImpl());
+         ProcessRuntimeFactory.setProcessRuntimeFactoryService(new ProcessRuntimeFactoryServiceImpl());
+	}
+	
 	private KnowledgeBase kbase;
 	private KnowledgeStoreService knowledgeStore;
 	private Environment environment;
@@ -37,11 +49,15 @@ public class JPAKnowledgeServiceBean implements InitializingBean {
 	private Map<String, String> sessionConfiguration = Collections.emptyMap();
 	
 	public StatefulKnowledgeSession newSession() {
-		StatefulKnowledgeSession ksession = knowledgeStore.newStatefulKnowledgeSession(this.kbase, createSessionConf(), createEnvironment());
+
+		Environment env = createEnvironment();
+		StatefulKnowledgeSession ksession = knowledgeStore.newStatefulKnowledgeSession(this.kbase, createSessionConf(), env);
 		registerAgendaEventListeners(ksession);
 		registerProcessEventListeners(ksession);
 		registerWorkingMemoryEventListeners(ksession);
 		registerWorkItemHandlers(ksession);
+		new JPAWorkingMemoryDbLogger(ksession);
+		SpringJPAProcessInstanceDbLog.setEnvironment(env);
 		return ksession;
 	}
 

@@ -1,6 +1,6 @@
 package com.plugtree.cisco.test;
 
-import static org.junit.Assert.assertEquals; 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
-import javax.persistence.EntityManagerFactory;
 
 import org.drools.WorkingMemory;
 import org.drools.command.impl.CommandBasedStatefulKnowledgeSession;
@@ -28,6 +27,7 @@ import org.drools.impl.StatefulKnowledgeSessionImpl;
 import org.drools.runtime.StatefulKnowledgeSession;
 import org.drools.runtime.process.ProcessInstance;
 import org.drools.runtime.process.WorkflowProcessInstance;
+import org.jbpm.process.audit.ProcessInstanceLog;
 import org.jbpm.process.workitem.wsht.GenericHTWorkItemHandler;
 import org.jbpm.task.Status;
 import org.jbpm.task.query.TaskSummary;
@@ -43,6 +43,7 @@ import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.plugtree.cisco.spring.JPAKnowledgeServiceBean;
+import com.plugtree.cisco.spring.SpringJPAProcessInstanceDbLog;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration("classpath:config-spring.xml")
@@ -151,8 +152,9 @@ public class SpringPersistentSessionTest {
 		Collection<ProcessInstance> activePIs = ksession3.getProcessInstances();
 		assertTrue(activePIs.isEmpty());
 
-		//List<ProcessInstanceLog> list = JPAProcessInstanceDbLog.findProcessInstances();
-		//assertNotNull(list);
+		List<ProcessInstanceLog> completedProcesses = SpringJPAProcessInstanceDbLog.findProcessInstances();
+		assertNotNull(completedProcesses);
+		assertEquals(1, completedProcesses.size());
 		//ksession3.dispose();
 	}
 	
@@ -191,6 +193,8 @@ public class SpringPersistentSessionTest {
 		
 		assertEquals(ProcessInstance.STATE_ACTIVE, instance.getState());
 		
+		Thread.sleep(100); //there's a small race condition inside the process for some reason
+		
 		assertNotNull(instance.getVariable("datatwo"));
 		assertEquals(instance.getVariable("datatwo"), "second value");
 		
@@ -209,7 +213,9 @@ public class SpringPersistentSessionTest {
 		results2.put("data3", "third value");
 		ContentData outputData2 = ContentMarshallerHelper.marshal(results2, new ContentMarshallerContext(), ksession.getEnvironment());
 		taskService.complete(secondTask.getId(), "mariano", outputData2);
-		
+
+		Thread.sleep(100); //there's a small race condition inside the process for some reason
+
 		//now that the second task is completed, the process is completed as well
 		assertEquals(ProcessInstance.STATE_COMPLETED, instance.getState());
 		assertNotNull(instance.getVariable("datathree"));
