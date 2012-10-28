@@ -123,6 +123,7 @@ public class SessionConfigTest {
 	public void testTwoVersionsOfSameProcess() throws Exception {
 		StatefulKnowledgeSession ksession = JBPMUtil.initSimpleSession();
 		
+		CounterWorkItemHandler.getInstance().restart();
 		//registering work item handlers
 		ksession.getWorkItemManager().registerWorkItemHandler("hello", new MessageWorkItemHandler("hello"));
 		ksession.getWorkItemManager().registerWorkItemHandler("goodbye", new MessageWorkItemHandler("goodbye"));

@@ -36,4 +36,8 @@ public class CounterWorkItemHandler implements WorkItemHandler {
 	public int getCount() {
 		return count;
 	}
+	
+	public synchronized void restart() {
+		count = 0;
+	}
 }

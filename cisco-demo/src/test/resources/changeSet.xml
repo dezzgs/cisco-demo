@@ -1,0 +1,7 @@
+<change-set xmlns="http://drools.org/drools-5.0/change-set" 
+            xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" 
+            xs:schemaLocation="http://drools.org/drools-5.0/change-set change-set-5.0.xsd" >
+    <add>
+        <resource source="file:/opt/git/git_cisco/master/cisco-demo/src/test/resources/processes/binary.pkg" type="PKG"  />
+    </add>
+</change-set>
