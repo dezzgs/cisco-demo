@@ -68,11 +68,17 @@
     </spring:bean>
     <spring:bean id="datasource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
         <spring:property name="driverClassName" value="org.h2.Driver" />
-        <spring:property name="url" value="jdbc:h2:workflow;MVCC=TRUE" />
+        <spring:property name="url" value="jdbc:h2:workflow;MVCC=TRUE;DB_CLOSE_ON_EXIT=FALSE" />
         <spring:property name="username" value="sa" />
         <spring:property name="password" value="" />
     </spring:bean>
-
+    <spring:bean id="taskDatasource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+        <spring:property name="driverClassName" value="org.h2.Driver" />
+        <spring:property name="url" value="jdbc:h2:workflow;MVCC=TRUE;DB_CLOSE_ON_EXIT=FALSE" />
+        <spring:property name="username" value="sa" />
+        <spring:property name="password" value="" />
+    </spring:bean>
+    
     <spring:bean id="entityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
         <spring:property name="persistenceUnitName" value="org.jbpm.persistence.jpa" />
         <spring:property name="dataSource" ref="datasource" />
@@ -115,7 +121,7 @@
     
     <spring:bean id="taskEntityManagerFactory" class="org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean">
         <spring:property name="persistenceUnitName" value="org.jbpm.task" />
-        <spring:property name="dataSource" ref="datasource" />
+        <spring:property name="dataSource" ref="taskDatasource" />
         <spring:property name="jpaProperties">
             <spring:props>
                  <spring:prop key="hibernate.connection.autocommit">false</spring:prop>
