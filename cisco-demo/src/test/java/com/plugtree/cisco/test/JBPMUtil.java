@@ -39,6 +39,7 @@ public class JBPMUtil {
 		kbuilder.add(new ClassPathResource("processes/demo.my-user-defined-tasks-process-v1.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.my-user-defined-tasks-process-v2.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.human-task-process.bpmn2"), ResourceType.BPMN2);
+		kbuilder.add(new ClassPathResource("processes/demo.human-task-process-v2.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.new-sub-process.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.new-main-process.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.rule-process.bpmn2"), ResourceType.BPMN2);

@@ -357,7 +357,7 @@ public class TaskServiceTest {
 
 	}
 	
-	@Test @Ignore("Issues with local entities management. Reported to the community for version 5.4.0.Final")
+	@Test @Ignore("Issues with local entities management during execution of escalated deadline. Will report to the Drools/jBPM community")
 	public void testEscalationsInUserTasks() throws Exception {
 		TaskService internalTaskService = startInternalTaskService();
 		LocalTaskService taskService = new LocalTaskService(internalTaskService);
@@ -375,18 +375,20 @@ public class TaskServiceTest {
 		Map<String, Object> initData = new HashMap<String, Object>();
 		initData.put("dataone", "first value");
 		//adding data about escalations and reassignments
-		initData.put("NotStartedReassignSpec", " groups:bosses @ 10s ");
-		initData.put("NotStartedNotifySpec", " users:Administrator|body:Task sent to you because of expired start time|subject:Task reassigned @ 10s ");
+		initData.put("NotStartedReassignSpec", " users:mariano @ 10s ");
+		initData.put("NotStartedNotifySpec", " users:mariano|body:Task sent to you because of expired start time|subject:Task reassigned @ 10s ");
 		
-		WorkflowProcessInstance instance = (WorkflowProcessInstance) ksession.startProcess("demo.human-task-process", initData);
+		WorkflowProcessInstance instance = (WorkflowProcessInstance) ksession.startProcess("demo.human-task-process-v2", initData);
 		assertEquals(ProcessInstance.STATE_ACTIVE, instance.getState());
 		
-		List<TaskSummary> tasks = taskService.getTasksOwned("salaboy", "en-UK");
+		List<TaskSummary> tasks = taskService.getTasksAssignedAsPotentialOwner("salaboy", "en-UK");
 		assertNotNull(tasks);
 		assertEquals(1, tasks.size());
 		
+		
 		TaskSummary firstTask = tasks.iterator().next();
-		assertEquals(Status.Reserved, firstTask.getStatus());
+		assertEquals(Status.Ready, firstTask.getStatus());
+		taskService.claim(firstTask.getId(), "salaboy");
 		
 		Thread.sleep(11000); //we wait 11 seconds and request data again
 		
@@ -397,22 +399,22 @@ public class TaskServiceTest {
 		assertNotNull(emptyListOfTasks);
 		assertEquals(0, emptyListOfTasks.size());
 		
-		List<TaskSummary> reassignedTasks = taskService.getTasksAssignedAsPotentialOwner("Administrator", null, "en-UK");
+		List<TaskSummary> reassignedTasks = taskService.getTasksAssignedAsPotentialOwner("mariano", "en-UK");
 		assertNotNull(reassignedTasks);
 		assertEquals(1, reassignedTasks.size());
 		
-		TaskSummary firstAdminTask = reassignedTasks.iterator().next();
-		assertEquals(Status.Ready, firstAdminTask.getStatus());
-		
-		//only salaboy is listed as potential owner, so even if notification and reassignment is sent to Administrator,
-		//only salaboy can complete this task
-		taskService.claim(firstAdminTask.getId(), "Administrator");
-		taskService.start(firstAdminTask.getId(), "Administrator");
+		TaskSummary firstReassignedTask = reassignedTasks.iterator().next();
+		assertEquals(Status.Ready, firstReassignedTask.getStatus());
+
+		//only salaboy and mariano are listed as potential owner, so even if notification and reassignment is 
+		// sent to Administrator, only mariano can complete this task now
+		taskService.claim(firstReassignedTask.getId(), "mariano");
+		taskService.start(firstReassignedTask.getId(), "mariano");
 		
 		Map<String, Object> results1 = new HashMap<String, Object>();
 		results1.put("data2", "second value");
 		ContentData outputData1 = ContentMarshallerHelper.marshal(results1, new ContentMarshallerContext(), ksession.getEnvironment());
-		taskService.complete(firstTask.getId(), "salaboy", outputData1);
+		taskService.complete(firstTask.getId(), "mariano", outputData1);
 		//up to here, all direct interaction is handled through task service
 		// the handler is in charge of getting to the next task
 		
