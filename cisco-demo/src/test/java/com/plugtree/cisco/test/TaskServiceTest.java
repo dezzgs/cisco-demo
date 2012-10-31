@@ -42,6 +42,7 @@ import org.jbpm.task.service.responsehandlers.BlockingTaskOperationResponseHandl
 import org.jbpm.task.service.responsehandlers.BlockingTaskSummaryResponseHandler;
 import org.jbpm.task.utils.ContentMarshallerContext;
 import org.jbpm.task.utils.ContentMarshallerHelper;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TaskServiceTest {
@@ -355,5 +356,90 @@ public class TaskServiceTest {
 		taskServer.stop();
 
 	}
+	
+	@Test @Ignore("Issues with local entities management. Reported to the community for version 5.4.0.Final")
+	public void testEscalationsInUserTasks() throws Exception {
+		TaskService internalTaskService = startInternalTaskService();
+		LocalTaskService taskService = new LocalTaskService(internalTaskService);
+		StatefulKnowledgeSession ksession = JBPMUtil.initSimpleSession();
+		
+		//use human-task-process with GenericHTWorkItemHandler and LocalTaskService
+		GenericHTWorkItemHandler humanTaskHandler = new GenericHTWorkItemHandler(ksession);
+		humanTaskHandler.setClient(taskService);
+		humanTaskHandler.setIpAddress("ommit"); //quickfix to generic connect issue
+		humanTaskHandler.setPort(20); //quickfix to generic connect issue
+		humanTaskHandler.setLocal(true);
+		
+		ksession.getWorkItemManager().registerWorkItemHandler("Human Task", humanTaskHandler);
+		
+		Map<String, Object> initData = new HashMap<String, Object>();
+		initData.put("dataone", "first value");
+		//adding data about escalations and reassignments
+		initData.put("NotStartedReassignSpec", " groups:bosses @ 10s ");
+		initData.put("NotStartedNotifySpec", " users:Administrator|body:Task sent to you because of expired start time|subject:Task reassigned @ 10s ");
+		
+		WorkflowProcessInstance instance = (WorkflowProcessInstance) ksession.startProcess("demo.human-task-process", initData);
+		assertEquals(ProcessInstance.STATE_ACTIVE, instance.getState());
+		
+		List<TaskSummary> tasks = taskService.getTasksOwned("salaboy", "en-UK");
+		assertNotNull(tasks);
+		assertEquals(1, tasks.size());
+		
+		TaskSummary firstTask = tasks.iterator().next();
+		assertEquals(Status.Reserved, firstTask.getStatus());
+		
+		Thread.sleep(11000); //we wait 11 seconds and request data again
+		
+		assertEquals(1, TestEscalatedDeadlineHandler.getNotifiedTaskIds().size());
+		assertEquals(Long.valueOf(firstTask.getId()), TestEscalatedDeadlineHandler.getNotifiedTaskIds().iterator().next());
+		
+		List<TaskSummary> emptyListOfTasks = taskService.getTasksOwned("salaboy", "en-UK");
+		assertNotNull(emptyListOfTasks);
+		assertEquals(0, emptyListOfTasks.size());
+		
+		List<TaskSummary> reassignedTasks = taskService.getTasksAssignedAsPotentialOwner("Administrator", null, "en-UK");
+		assertNotNull(reassignedTasks);
+		assertEquals(1, reassignedTasks.size());
+		
+		TaskSummary firstAdminTask = reassignedTasks.iterator().next();
+		assertEquals(Status.Ready, firstAdminTask.getStatus());
+		
+		//only salaboy is listed as potential owner, so even if notification and reassignment is sent to Administrator,
+		//only salaboy can complete this task
+		taskService.claim(firstAdminTask.getId(), "Administrator");
+		taskService.start(firstAdminTask.getId(), "Administrator");
+		
+		Map<String, Object> results1 = new HashMap<String, Object>();
+		results1.put("data2", "second value");
+		ContentData outputData1 = ContentMarshallerHelper.marshal(results1, new ContentMarshallerContext(), ksession.getEnvironment());
+		taskService.complete(firstTask.getId(), "salaboy", outputData1);
+		//up to here, all direct interaction is handled through task service
+		// the handler is in charge of getting to the next task
+		
+		assertEquals(ProcessInstance.STATE_ACTIVE, instance.getState());
+		
+		assertNotNull(instance.getVariable("datatwo"));
+		assertEquals(instance.getVariable("datatwo"), "second value");
+		
+		List<String> groupIds = new ArrayList<String>();
+		groupIds.add("users");
+		List<TaskSummary> groupTasks = taskService.getTasksAssignedAsPotentialOwner("mariano", groupIds, "en-UK");
+		assertNotNull(groupTasks);
+		assertEquals(1, groupTasks.size());
+		
+		TaskSummary secondTask = groupTasks.iterator().next();
+		assertEquals(Status.Ready, secondTask.getStatus());
+		taskService.claim(secondTask.getId(), "mariano", groupIds);
+		taskService.start(secondTask.getId(), "mariano");
 
+		Map<String, Object> results2 = new HashMap<String, Object>();
+		results2.put("data3", "third value");
+		ContentData outputData2 = ContentMarshallerHelper.marshal(results2, new ContentMarshallerContext(), ksession.getEnvironment());
+		taskService.complete(secondTask.getId(), "mariano", outputData2);
+		
+		//now that the second task is completed, the process is completed as well
+		assertEquals(ProcessInstance.STATE_COMPLETED, instance.getState());
+		assertNotNull(instance.getVariable("datathree"));
+		assertEquals(instance.getVariable("datathree"), "third value");
+	}
 }

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.omg.org/bpmn20" xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:drools="http://www.jboss.org/drools" id="_YRK1ACLkEeK_3c9eRANLGw" xsi:schemaLocation="http://www.omg.org/spec/BPMN/20100524/MODEL BPMN20.xsd" targetNamespace="http://www.omg.org/bpmn20">
+  <bpmn2:itemDefinition id="_mySignalVarItem" structureRef="String"/>
+  <bpmn2:itemDefinition id="_auxItem" structureRef="String"/>
+  <bpmn2:process id="demo.signal-events-process" drools:packageName="demo" name="signal-events-process" isExecutable="true">
+    <bpmn2:property id="mySignalVar" itemSubjectRef="_mySignalVarItem"/>
+    <bpmn2:property id="aux" itemSubjectRef="_auxItem"/>
+    <bpmn2:startEvent id="_87DCEC2D-8406-4222-B111-45D8014204DC" drools:bgcolor="#9acd32" drools:selectable="true" name="start">
+      <bpmn2:outgoing>_E65FE2D3-30F1-430C-B0FA-8CBA0F48065A</bpmn2:outgoing>
+    </bpmn2:startEvent>
+    <bpmn2:scriptTask id="_BAF9A217-3143-4543-B07B-67CA7589E71A" drools:selectable="true" name="Before Signal" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>_E65FE2D3-30F1-430C-B0FA-8CBA0F48065A</bpmn2:incoming>
+      <bpmn2:outgoing>_5A5BEB63-6590-4C38-BAD2-2A1101A861C9</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[System.out.println("Before signal");System.out.println("mySignalVar = " + mySignalVar);]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:sequenceFlow id="_E65FE2D3-30F1-430C-B0FA-8CBA0F48065A" drools:bgcolor="#000000" drools:selectable="true" sourceRef="_87DCEC2D-8406-4222-B111-45D8014204DC" targetRef="_BAF9A217-3143-4543-B07B-67CA7589E71A"/>
+    <bpmn2:intermediateCatchEvent id="_19B54F0C-CF8F-4874-A180-0493B10D89C4" drools:bgcolor="#f5deb3" drools:selectable="true" drools:bordercolor="#a0522d" drools:boundaryca="false" name="signal">
+      <bpmn2:incoming>_5A5BEB63-6590-4C38-BAD2-2A1101A861C9</bpmn2:incoming>
+      <bpmn2:outgoing>_B28F34BE-E1F0-48CD-B443-D6CBF6D257F8</bpmn2:outgoing>
+      <bpmn2:dataOutput id="_19B54F0C-CF8F-4874-A180-0493B10D89C4_eventContent:String" name="eventContent:String"/>
+      <bpmn2:dataOutputAssociation id="_YRK1AiLkEeK_3c9eRANLGw">
+        <bpmn2:sourceRef>mySignalVar</bpmn2:sourceRef><!--Added by hand-->
+        <bpmn2:targetRef>mySignalVar</bpmn2:targetRef>
+      </bpmn2:dataOutputAssociation>
+      <bpmn2:outputSet id="_YRK1ASLkEeK_3c9eRANLGw">
+        <bpmn2:dataOutputRefs>_19B54F0C-CF8F-4874-A180-0493B10D89C4_eventContent:String</bpmn2:dataOutputRefs>
+      </bpmn2:outputSet>
+      <bpmn2:signalEventDefinition id="_YRK1AyLkEeK_3c9eRANLGw" signalRef="my-user-defined-signal"/>
+    </bpmn2:intermediateCatchEvent>
+    <bpmn2:sequenceFlow id="_5A5BEB63-6590-4C38-BAD2-2A1101A861C9" drools:bgcolor="#000000" drools:selectable="true" sourceRef="_BAF9A217-3143-4543-B07B-67CA7589E71A" targetRef="_19B54F0C-CF8F-4874-A180-0493B10D89C4"/>
+    <bpmn2:scriptTask id="_66358CD1-97FC-4223-AA4E-EA1F52D9B8B8" drools:selectable="true" name="After Signal" scriptFormat="http://www.java.com/java">
+      <bpmn2:incoming>_B28F34BE-E1F0-48CD-B443-D6CBF6D257F8</bpmn2:incoming>
+      <bpmn2:outgoing>_467309D0-5246-45AE-9007-3296FCAC269B</bpmn2:outgoing>
+      <bpmn2:script><![CDATA[System.out.println("After signal");System.out.println("mySignalVar = " + mySignalVar);]]></bpmn2:script>
+    </bpmn2:scriptTask>
+    <bpmn2:sequenceFlow id="_B28F34BE-E1F0-48CD-B443-D6CBF6D257F8" drools:bgcolor="#000000" drools:selectable="true" sourceRef="_19B54F0C-CF8F-4874-A180-0493B10D89C4" targetRef="_66358CD1-97FC-4223-AA4E-EA1F52D9B8B8"/>
+    <bpmn2:endEvent id="_E85BDCED-707B-4554-8D0B-C708944EEE15" drools:bgcolor="#ff6347" drools:selectable="true" name="end">
+      <bpmn2:incoming>_467309D0-5246-45AE-9007-3296FCAC269B</bpmn2:incoming>
+    </bpmn2:endEvent>
+    <bpmn2:sequenceFlow id="_467309D0-5246-45AE-9007-3296FCAC269B" drools:bgcolor="#000000" drools:selectable="true" sourceRef="_66358CD1-97FC-4223-AA4E-EA1F52D9B8B8" targetRef="_E85BDCED-707B-4554-8D0B-C708944EEE15"/>
+  </bpmn2:process>
+  <bpmndi:BPMNDiagram id="_YRK1BCLkEeK_3c9eRANLGw">
+    <bpmndi:BPMNPlane id="_YRK1BSLkEeK_3c9eRANLGw" bpmnElement="demo.signal-events-process">
+      <bpmndi:BPMNShape id="_YRK1BiLkEeK_3c9eRANLGw" bpmnElement="_87DCEC2D-8406-4222-B111-45D8014204DC">
+        <dc:Bounds height="30.0" width="30.0" x="60.0" y="135.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="_YRK1ByLkEeK_3c9eRANLGw" bpmnElement="_BAF9A217-3143-4543-B07B-67CA7589E71A">
+        <dc:Bounds height="80.0" width="100.0" x="135.0" y="110.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="_YRK1CCLkEeK_3c9eRANLGw" bpmnElement="_E65FE2D3-30F1-430C-B0FA-8CBA0F48065A">
+        <di:waypoint xsi:type="dc:Point" x="75.0" y="150.0"/>
+        <di:waypoint xsi:type="dc:Point" x="185.0" y="150.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_YRLcECLkEeK_3c9eRANLGw" bpmnElement="_19B54F0C-CF8F-4874-A180-0493B10D89C4">
+        <dc:Bounds height="30.0" width="30.0" x="285.0" y="135.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="_YRLcESLkEeK_3c9eRANLGw" bpmnElement="_5A5BEB63-6590-4C38-BAD2-2A1101A861C9">
+        <di:waypoint xsi:type="dc:Point" x="185.0" y="150.0"/>
+        <di:waypoint xsi:type="dc:Point" x="300.0" y="150.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_YRLcEiLkEeK_3c9eRANLGw" bpmnElement="_66358CD1-97FC-4223-AA4E-EA1F52D9B8B8">
+        <dc:Bounds height="80.0" width="100.0" x="360.0" y="110.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="_YRLcEyLkEeK_3c9eRANLGw" bpmnElement="_B28F34BE-E1F0-48CD-B443-D6CBF6D257F8">
+        <di:waypoint xsi:type="dc:Point" x="300.0" y="150.0"/>
+        <di:waypoint xsi:type="dc:Point" x="410.0" y="150.0"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_YRLcFCLkEeK_3c9eRANLGw" bpmnElement="_E85BDCED-707B-4554-8D0B-C708944EEE15">
+        <dc:Bounds height="28.0" width="28.0" x="502.0" y="133.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="_YRLcFSLkEeK_3c9eRANLGw" bpmnElement="_467309D0-5246-45AE-9007-3296FCAC269B">
+        <di:waypoint xsi:type="dc:Point" x="410.0" y="150.0"/>
+        <di:waypoint xsi:type="dc:Point" x="516.0" y="147.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

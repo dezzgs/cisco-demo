@@ -33,6 +33,8 @@ public 	class TestUserInfo implements UserInfo {
 			list.add(new User("mariano"));
 			list.add(new User("salaboy"));
 			list.add(new User("Administrator"));
+		} else if (group != null && group.getId().equals("bosses")) {
+			list.add(new User("Administrator"));
 		}
 		return list.iterator();
 	}

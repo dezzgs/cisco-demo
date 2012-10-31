@@ -17,6 +17,9 @@ public class TestUserGroupCallback implements UserGroupCallback {
 		List<String> list = new ArrayList<String>();
 		if (userId != null && amongValidUsers(userId)) {
 			list.add("users");
+			if (userId.equals("Administrator")) {
+				list.add("bosses");
+			}
 		}
 		return list;
 	}
@@ -28,6 +31,6 @@ public class TestUserGroupCallback implements UserGroupCallback {
 	
 	@Override
 	public boolean existsGroup(String groupId) {
-		return groupId != null && "users".equals(groupId);
+		return groupId != null && ("users".equals(groupId) || "bosses".equals(groupId));
 	}
 }

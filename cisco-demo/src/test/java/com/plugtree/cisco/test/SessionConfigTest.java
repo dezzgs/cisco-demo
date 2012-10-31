@@ -2,10 +2,13 @@ package com.plugtree.cisco.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import org.drools.KnowledgeBaseFactory;
 import org.drools.WorkingMemory;
 import org.drools.event.ActivationCancelledEvent;
 import org.drools.event.ActivationCreatedEvent;
@@ -19,9 +22,13 @@ import org.drools.event.process.ProcessEventListener;
 import org.drools.event.rule.AgendaEventListener;
 import org.drools.event.rule.WorkingMemoryEventListener;
 import org.drools.impl.StatefulKnowledgeSessionImpl;
+import org.drools.runtime.KnowledgeSessionConfiguration;
 import org.drools.runtime.StatefulKnowledgeSession;
+import org.drools.runtime.conf.ClockTypeOption;
 import org.drools.runtime.process.ProcessInstance;
+import org.drools.runtime.process.WorkItem;
 import org.drools.runtime.process.WorkflowProcessInstance;
+import org.drools.time.SessionPseudoClock;
 import org.junit.Test;
 
 import com.plugtree.cisco.listeners.LogAgendaEventListener;
@@ -157,5 +164,70 @@ public class SessionConfigTest {
 		ProcessInstance instance = ksession.startProcess("demo.new-main-process", initData);
 		
 		assertEquals(instance.getState(), ProcessInstance.STATE_COMPLETED);
+	}
+	
+	@Test
+	public void testDebuggableDelayTimersInProcess() throws Exception {
+		KnowledgeSessionConfiguration ksessionConf = KnowledgeBaseFactory.newKnowledgeSessionConfiguration();
+		ksessionConf.setOption(ClockTypeOption.get("pseudo"));
+		StatefulKnowledgeSession ksession = JBPMUtil.initSimpleSession(ksessionConf);
+		
+		ProcessInstance process = ksession.startProcess("demo.timer-events-process");
+
+        assertEquals(ProcessInstance.STATE_ACTIVE, process.getState());
+
+        SessionPseudoClock clock = ksession.getSessionClock();
+        clock.advanceTime(1000, TimeUnit.MILLISECONDS);
+        System.out.println("Time: " + clock.getCurrentTime() );
+        assertEquals(ProcessInstance.STATE_ACTIVE, process.getState());
+        clock.advanceTime(1000, TimeUnit.MILLISECONDS);
+        System.out.println("Time: " + clock.getCurrentTime() );
+        assertEquals(ProcessInstance.STATE_COMPLETED, process.getState());
+        Long timerExecutionTime = (Long) ((WorkflowProcessInstance) process).getVariable("timeExecution");
+        assertTrue(timerExecutionTime >= 2000);
+	}
+	
+	@Test
+	public void testDelayTimersInProcess() throws Exception {
+		StatefulKnowledgeSession ksession = JBPMUtil.initSimpleSession();
+		ProcessInstance process = ksession.startProcess("demo.timer-events-process");
+
+        assertEquals(ProcessInstance.STATE_ACTIVE, process.getState());
+
+        int sleep = 5000;
+        System.out.println("Sleeping " + (sleep/1000) + " seconds." );
+        Thread.sleep(sleep);
+        System.out.println("Awake!");
+
+        //The process continues until it reaches the end node
+        assertEquals(ProcessInstance.STATE_COMPLETED, process.getState());
+
+        Long timerExecutionTime = (Long) ((WorkflowProcessInstance) process).getVariable("timeExecution");
+        assertTrue(timerExecutionTime >= 2000);
+	}
+	
+	@Test
+	public void testSignalEventInProcess() throws Exception {
+		StatefulKnowledgeSession ksession = JBPMUtil.initSimpleSession();
+		ksession.getWorkItemManager().registerWorkItemHandler("Human Task", TestAsyncWorkItemHandler.getInstance());
+		ProcessInstance process = ksession.startProcess("demo.signal-events-process");
+		assertEquals(ProcessInstance.STATE_ACTIVE, process.getState());
+
+		String externalSignal = "MY-VARIABLE-NAME";
+		//signalEvent will continue the process
+		ksession.signalEvent("my-user-defined-signal", externalSignal);
+		assertEquals(ProcessInstance.STATE_COMPLETED, process.getState());
+		
+		String variableValue = (String) ((WorkflowProcessInstance) process).getVariable("mySignalVar");
+		assertEquals(externalSignal, variableValue);
+		
+		//it will start a sub process with start signal event as well
+		WorkItem workItem = TestAsyncWorkItemHandler.getInstance().getItem();
+		long subProcessId = workItem.getProcessInstanceId();
+		ProcessInstance subProcess = ksession.getProcessInstance(subProcessId);
+		assertEquals(ProcessInstance.STATE_ACTIVE, subProcess.getState());
+		
+		ksession.getWorkItemManager().completeWorkItem(workItem.getId(), null);
+		assertEquals(ProcessInstance.STATE_COMPLETED, subProcess.getState());
 	}
 }

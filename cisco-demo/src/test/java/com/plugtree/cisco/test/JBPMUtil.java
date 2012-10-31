@@ -42,6 +42,9 @@ public class JBPMUtil {
 		kbuilder.add(new ClassPathResource("processes/demo.new-sub-process.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.new-main-process.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("processes/demo.rule-process.bpmn2"), ResourceType.BPMN2);
+		kbuilder.add(new ClassPathResource("processes/demo.timer-events-process.bpmn2"), ResourceType.BPMN2);
+		kbuilder.add(new ClassPathResource("processes/demo.signal-events-process.bpmn2"), ResourceType.BPMN2);
+		kbuilder.add(new ClassPathResource("processes/demo.signal-events-process-startup.bpmn2"), ResourceType.BPMN2);
 		kbuilder.add(new ClassPathResource("rules/my-rules.drl"), ResourceType.DRL);
 		
 		if (kbuilder.hasErrors()) {
@@ -61,6 +64,12 @@ public class JBPMUtil {
 		KnowledgeBase kbase = createKnowledgeBase();
 		//knowledge session (runtime of knowledge) created from valid knowledge base
 		return kbase.newStatefulKnowledgeSession();
+	}
+	
+	public static StatefulKnowledgeSession initSimpleSession(KnowledgeSessionConfiguration ksessionConf) {
+		KnowledgeBase kbase = createKnowledgeBase();
+		//knowledge session (runtime of knowledge) created from valid knowledge base
+		return kbase.newStatefulKnowledgeSession(ksessionConf, KnowledgeBaseFactory.newEnvironment());
 	}
 	
 	public static StatefulKnowledgeSession initJPASession() {
